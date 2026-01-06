@@ -1,10 +1,13 @@
 const express = require('express')
 const mongoose = require('mongoose');
+const Users = require('./models/product.models');
 const passport = require('passport');
 const session = require('express-session')
 require('./auth');
 
 const app = express()
+app.use(express.json());
+
 
 function isLoggedIn(req, res, next) {
   req.user ? next() : res.sendStatus(401);
@@ -51,6 +54,30 @@ app.get('/google/callback',
         successRedirect: '/protected',
         failureRedirect: '/auth/failure'
 }));
+
+
+app.post('/register', async (req, res) => {
+  const { userId, password } = req.body;
+
+  // STEP 1: Check if user already exists
+  const existingUser = await Users.findOne({ userId });
+  if (existingUser) {
+    return res.status(400).json({ msg: "User already exists" });
+  }
+
+  // STEP 2: Hash password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // STEP 3: Create user
+  const user = new User({
+    userId,
+    password: hashedPassword
+  });
+
+  await user.save();   // 👈 FIRST TIME LOGIN HANDLED HERE
+
+  res.json({ msg: "User registered successfully" });
+});
 
 
 // protected route where we want the user to be logged in (stage after authentication)
