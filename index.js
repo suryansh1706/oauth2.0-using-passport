@@ -13,10 +13,14 @@ app.use(session({ secret: 'cats', resave: false, saveUninitialized: true }));
 app.use(passport.initialize());
 app.use(passport.session());
 
+
+// basic route
 app.get('/', (req, res) => {
   res.send('<a href="/auth/google">Authenticate with Google</a>')
 })
 
+
+// link to authenticate with Google
 app.get('/auth/google',
   passport.authenticate('google', {scope: [ 'email', 'profile' ]}
 ));
@@ -27,10 +31,14 @@ app.get('/google/callback',
         failureRedirect: '/auth/failure'
 }));
 
+
+// protected route where we want the user to be logged in (stage after authentication)
 app.get('/protected', isLoggedIn, (req, res) => {
   res.send(`Hello ${req.user.displayName}`);
 });
 
+
+// logout route
 app.get('/logout', (req, res, next) => {
   req.logout(function(err) {
     if (err) { return next(err); }
@@ -39,6 +47,7 @@ app.get('/logout', (req, res, next) => {
     });
   });
 });
+
 
 app.get('/auth/failure', (req, res) => {
   res.send('Failed to authenticate..');
