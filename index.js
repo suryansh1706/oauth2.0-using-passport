@@ -1,4 +1,5 @@
 const express = require('express')
+const mongoose = require('mongoose');
 const passport = require('passport');
 const session = require('express-session')
 require('./auth');
@@ -19,6 +20,26 @@ app.get('/', (req, res) => {
   res.send('<a href="/auth/google">Authenticate with Google</a>')
 })
 
+
+
+async function startServer() {
+  try {
+    await mongoose.connect(
+      "mongodb+srv://suryansh_db_user:tbc2wGgke4Ubnl3w@login.evfahd2.mongodb.net/?appName=login"
+    );
+
+    console.log("Connected to MongoDB");
+
+    app.listen(5000, () => {
+      console.log("App listening on port 5000!");
+    });
+  } catch (err) {
+    console.error("Error connecting to MongoDB:", err);
+    process.exit(1); // stop app if DB fails
+  }
+}
+
+startServer();
 
 // link to authenticate with Google
 app.get('/auth/google',
@@ -55,4 +76,4 @@ app.get('/auth/failure', (req, res) => {
 
 
 
-app.listen(5000);
+
