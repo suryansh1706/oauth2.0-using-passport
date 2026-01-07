@@ -11,10 +11,7 @@ app.use(express.json());
 
 
 function isLoggedIn(req, res, next) {
-  if (req.user || req.session.user) {
-    return next();
-  }
-  res.sendStatus(401);
+  req.user ? next() : res.sendStatus(401);
 }
 
 app.use(session({ secret: 'cats', resave: false, saveUninitialized: true }));
@@ -101,7 +98,7 @@ app.post('/login', async (req, res) => {
   // res.json({ msg: "Login successful" });
   // store user in session (REQUIRED)
   req.session.user = user;
-  res.json({ redirect: '/protected' });
+  res.json({ msg: "Login successful" });
 });
 
 
