@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const Users = require('./models/product.models');
 const passport = require('passport');
 const session = require('express-session')
+const bcrypt = require('bcryptjs');
 require('./auth');
 
 const app = express()
@@ -10,7 +11,10 @@ app.use(express.json());
 
 
 function isLoggedIn(req, res, next) {
-  req.user ? next() : res.sendStatus(401);
+  if (req.user || req.session.user) {
+    return next();
+  }
+  res.sendStatus(401);
 }
 
 app.use(session({ secret: 'cats', resave: false, saveUninitialized: true }));
@@ -57,10 +61,10 @@ app.get('/google/callback',
 
 
 app.post('/register', async (req, res) => {
-  const { userId, password } = req.body;
+  const { username, password } = req.body;
 
   // STEP 1: Check if user already exists
-  const existingUser = await Users.findOne({ userId });
+  const existingUser = await Users.findOne({ username });
   if (existingUser) {
     return res.status(400).json({ msg: "User already exists" });
   }
@@ -69,15 +73,37 @@ app.post('/register', async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   // STEP 3: Create user
-  const user = new User({
-    userId,
+  const user = new Users({
+    username,
     password: hashedPassword
   });
 
-  await user.save();   // 👈 FIRST TIME LOGIN HANDLED HERE
+  await user.save();   // Saving user to DB
 
   res.json({ msg: "User registered successfully" });
 });
+
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  // STEP 1: Check user exists
+  const user = await Users.findOne({ username });
+  if (!user) {
+    return res.status(400).json({ msg: "Invalid credentials" });
+  }
+
+  // STEP 2: Check password
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res.status(400).json({ msg: "Invalid credentials" });
+  }
+
+  // res.json({ msg: "Login successful" });
+  // store user in session (REQUIRED)
+  req.session.user = user;
+  res.json({ redirect: '/protected' });
+});
+
 
 
 // protected route where we want the user to be logged in (stage after authentication)
