@@ -1,9 +1,7 @@
 const express = require('express')
-const mongoose = require('mongoose');
-const Users = require('./models/product.models');
 const passport = require('passport');
 const session = require('express-session')
-const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 require('dotenv').config();
 require('./auth');
 
@@ -12,8 +10,7 @@ app.use(express.json());
 
 
 function isLoggedIn(req, res, next) {
-  if (req.isAuthenticated()) return next();
-  res.sendStatus(401);
+  req.user ? next() : res.sendStatus(401);
 }
 
 
@@ -60,40 +57,9 @@ app.get('/google/callback',
 }));
 
 
-app.post('/register', async (req, res) => {
-  const { username, password } = req.body;
-
-  // STEP 1: Check if user already exists
-  const existingUser = await Users.findOne({ username });
-  if (existingUser) {
-    return res.status(400).json({ msg: "User already exists" });
-  }
-
-  // STEP 2: Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  // STEP 3: Create user
-  const user = new Users({
-    username,
-    password: hashedPassword
-  });
-
-  await user.save();   // Saving user to DB
-
-  res.json({ msg: "User registered successfully" });
-});
-
-app.post('/login',
-  passport.authenticate('local', {
-    successRedirect: '/protected',
-    failureRedirect: '/auth/failure'
-  })
-);
-
-
 // protected route where we want the user to be logged in (stage after authentication)
 app.get('/protected', isLoggedIn, (req, res) => {
-  res.send(`Hello ${req.user.displayName || req.user.username}`);
+  res.send(`Hello ${req.user.displayName}`);
 });
 
 // logout route
