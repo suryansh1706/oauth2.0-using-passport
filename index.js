@@ -4,6 +4,7 @@ const Users = require('./models/product.models');
 const passport = require('passport');
 const session = require('express-session')
 const bcrypt = require('bcryptjs');
+require('dotenv').config();
 require('./auth');
 
 const app = express()
@@ -11,8 +12,10 @@ app.use(express.json());
 
 
 function isLoggedIn(req, res, next) {
-  req.user ? next() : res.sendStatus(401);
+  if (req.isAuthenticated()) return next();
+  res.sendStatus(401);
 }
+
 
 app.use(session({ secret: 'cats', resave: false, saveUninitialized: true }));
 app.use(passport.initialize());
@@ -80,34 +83,18 @@ app.post('/register', async (req, res) => {
   res.json({ msg: "User registered successfully" });
 });
 
-app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-
-  // STEP 1: Check user exists
-  const user = await Users.findOne({ username });
-  if (!user) {
-    return res.status(400).json({ msg: "Invalid credentials" });
-  }
-
-  // STEP 2: Check password
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return res.status(400).json({ msg: "Invalid credentials" });
-  }
-
-  // res.json({ msg: "Login successful" });
-  // store user in session (REQUIRED)
-  req.session.user = user;
-  res.json({ msg: "Login successful" });
-});
-
+app.post('/login',
+  passport.authenticate('local', {
+    successRedirect: '/protected',
+    failureRedirect: '/auth/failure'
+  })
+);
 
 
 // protected route where we want the user to be logged in (stage after authentication)
 app.get('/protected', isLoggedIn, (req, res) => {
-  res.send(`Hello ${req.user.displayName}`);
+  res.send(`Hello ${req.user.displayName || req.user.username}`);
 });
-
 
 // logout route
 app.get('/logout', (req, res, next) => {
